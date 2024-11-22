@@ -14,7 +14,7 @@ h_layers = 4
 RMAX = 1000
 
 # Configuration and hyperparameters
-out_dir = f"./model_neurons{neurons}_h_layers{h_layers}_rmax{RMAX}/"
+out_dir = f"./model_neurons{neurons}_h_layers{h_layers}_rmax{RMAX}_retrain/"
 os.makedirs(out_dir, exist_ok=True)
 
 print('torch version:',torch.__version__)
@@ -30,13 +30,16 @@ else:
 #print('device:', device)
 
 model = FCN(1, 4, neurons, h_layers).to(device)
+# load weights and bias from trained model
+model.load_state_dict(torch.load("./model_neurons64_h_layers4/model.pth"))
+
 omega = 0.895042 * torch.ones(1).to(device)
 phi0  = 0.05  * torch.ones(1).to(device)
 m = torch.ones(1).to(device)
 
 # Initial learning rate
-initial_lr = 1e-3  # Starting learning rate
-final_reset_lr = 1e-4  # finale learning rate in resets
+initial_lr = 1e-5  # Starting learning rate
+final_reset_lr = 1e-6  # finale learning rate in resets
 reset_interval = 10000  # Interval after which learning rate will reset
 epochs = 100000  # Total number of epochs
 current_lr = initial_lr  # Set current learning rate to the initial learning rate
@@ -64,7 +67,7 @@ w3 = 1000.0  # Weight for phi_monotonic_decrease
 w4 = 1000.0  # Weight for alpha_monotonic_increase
 
 # Number of random domain points (n)
-n = 10000  # Adjust this as necessary
+n = 1000  # Adjust this as necessary
 
 # Loss and training loop
 losses = [[], [], [], [], []]
