@@ -12,9 +12,11 @@ from reset_lr import reset_lr_scheduler
 neurons = 64
 h_layers = 4
 RMAX = 1000
+# Number of random domain points (n)
+n = 10000  # Adjust this as necessary
 
 # Configuration and hyperparameters
-out_dir = f"./model_neurons{neurons}_h_layers{h_layers}_rmax{RMAX}/"
+out_dir = f"./models/neurons{neurons}_h_layers{h_layers}_rmax{RMAX}/"
 os.makedirs(out_dir, exist_ok=True)
 
 print('torch version:',torch.__version__)
@@ -62,9 +64,6 @@ w1 = 1.0  # Weight for domain_loss
 w2 = 1000.0  # Weight for rmax_loss
 w3 = 1000.0  # Weight for phi_monotonic_decrease
 w4 = 1000.0  # Weight for alpha_monotonic_increase
-
-# Number of random domain points (n)
-n = 10000  # Adjust this as necessary
 
 # Loss and training loop
 losses = [[], [], [], [], []]

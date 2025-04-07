@@ -11,10 +11,10 @@ from reset_lr import reset_lr_scheduler
 # for the model
 neurons = 64
 h_layers = 4
-RMAX = 1000
+RMAX = 100
 
 # Configuration and hyperparameters
-out_dir = f"./model_neurons{neurons}_h_layers{h_layers}_rmax{RMAX}_retrain/"
+out_dir = f"./models/neurons{neurons}_h_layers{h_layers}_rmax{RMAX}_retrain/"
 os.makedirs(out_dir, exist_ok=True)
 
 print('torch version:',torch.__version__)
@@ -31,16 +31,16 @@ else:
 
 model = FCN(1, 4, neurons, h_layers).to(device)
 # load weights and bias from trained model
-model.load_state_dict(torch.load("./model_neurons64_h_layers4/model.pth"))
+model.load_state_dict(torch.load(f"./models/neurons{neurons}_h_layers{h_layers}_rmax{RMAX}/model.pth"))
 
 omega = 0.895042 * torch.ones(1).to(device)
 phi0  = 0.05  * torch.ones(1).to(device)
 m = torch.ones(1).to(device)
 
 # Initial learning rate
-initial_lr = 1e-5  # Starting learning rate
-final_reset_lr = 1e-6  # finale learning rate in resets
-reset_interval = 10000  # Interval after which learning rate will reset
+initial_lr = 1e-4  # Starting learning rate
+final_reset_lr = 1e-5  # finale learning rate in resets
+reset_interval = 100000  # Interval after which learning rate will reset
 epochs = 100000  # Total number of epochs
 current_lr = initial_lr  # Set current learning rate to the initial learning rate
 
@@ -52,7 +52,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=current_lr)
 
 # Learning rate scheduler for exponential decay after reset
 DECAY_RATE = 0.95
-DECAY_STEPS = 2000
+DECAY_STEPS = 20000
 gamma = DECAY_RATE ** (1 / DECAY_STEPS)
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
 
@@ -68,6 +68,8 @@ w4 = 1000.0  # Weight for alpha_monotonic_increase
 
 # Number of random domain points (n)
 n = 1000  # Adjust this as necessary
+# for grid to be more dense near r=0
+sigma = 0.2
 
 # Loss and training loop
 losses = [[], [], [], [], []]
@@ -82,7 +84,9 @@ for epoch in range(epochs):
     u0 = model(r0)
     loss_r0 = r0_loss(u0, r0, phi0)
     # the bulk loss and monotonicity penalties
-    r = RMAX * random_domain_points(n).to(device)
+    #r = RMAX * random_domain_points(n).to(device)
+    pts = random_domain_points(n).to(device) # uniform points in (0,1)
+    r = RMAX * torch.sinh(pts/sigma)/torch.sinh(1/sigma)
     u = model(r)
     loss_dom = domain_loss(u, r, omega, m)
     phi_mono_decrease = phi_monotonic_decrease_dom(u, r)
