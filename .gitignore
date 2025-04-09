@@ -3,3 +3,4 @@ shooting_method/
 models/
 src/GPU_non_compact_r_fixed_omega/__pycache__/
 .ipynb_checkpoints/
+notebooks/scratch.ipynb
