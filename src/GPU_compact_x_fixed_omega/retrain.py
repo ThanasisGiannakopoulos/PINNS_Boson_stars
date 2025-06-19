@@ -13,12 +13,11 @@ h_layers = 4
 # Number of random domain points (n)
 n = 2*1000  # Adjust this as necessary
 # for grid to be more dense near r=0
-sigma = 0.2
+#sigma = 0.1
 
 # Configuration and hyperparameters
-out_dir = f"../../models/GPU_compact_x_fixed_omega/neurons{neurons}_h_layers{h_layers}_n{n}_sigma{sigma}/"
-#f"../../models/GPU_compact_x_fixed_omega/neurons{neurons}_h_layers{h_layers}_n{n}/"
-os.makedirs(out_dir, exist_ok=True)
+in_dir = f"./models/neurons{neurons}_h_layers{h_layers}_n{n}_sigma{sigma}/"
+out_dir = in_dir
 
 print('torch version:',torch.__version__)
 
@@ -33,16 +32,19 @@ else:
 #print('device:', device)
 
 model = FCN(1, 4, neurons, h_layers).to(device)
+# load model for retraining
+last_epoch = 200000
+model.load_state_dict(torch.load(in_dir+f"/model_epoch{last_epoch}.pth"))
 
 omega = 0.895042 * torch.ones(1).to(device)
 phi0  = 0.05  * torch.ones(1).to(device)
 m = torch.ones(1).to(device)
 
 # Initial learning rate
-initial_lr = 1e-3  # Starting learning rate
+initial_lr = 1e-4  # Starting learning rate
 #final_reset_lr = 1e-5  # finale learning rate in resets
 #reset_interval = 100000  # Interval after which learning rate will reset
-epochs = 100000  # Total number of epochs
+epochs = 2*100000  # Total number of epochs
 save_model_every = 10000 
 current_lr = initial_lr  # Set current learning rate to the initial learning rate
 
@@ -69,9 +71,18 @@ w3 = 1000.0  # Weight for phi_monotonic_decrease
 w4 = 1000.0  # Weight for alpha_monotonic_increase
 
 # Loss and training loop
-losses = [[], [], [], [], []]
-loss_list = []
-lr_list = []
+# losses = [[], [], [], [], []]
+# loss_list = []
+# lr_list = []
+# load total loss list
+loss_list = np.load(in_dir + "total_loss.npz")["loss"]
+loss_list = loss_list.tolist()
+# load individual losses
+losses = np.load(in_dir + "losses.npz")["loss"]
+losses = [losses[i].tolist() for i in range(5)]
+# load learning rate list
+lr_list = np.load(in_dir + "learning_rate.npz")["lr"]
+lr_list = lr_list.tolist()
 
 for epoch in range(epochs):
     optimizer.zero_grad()
@@ -82,8 +93,8 @@ for epoch in range(epochs):
     loss_x0 = x0_loss(u0, x0, phi0)
     # the bulk loss and monotonicity penalties
     pts = random_domain_points(n).to(device) # uniform points in (0,1)
-    x = torch.sinh(pts/sigma)/torch.sinh(torch.ones(1).to(device)/sigma)
-    #x = pts
+    #x = torch.sinh(pts/sigma)/torch.sinh(torch.ones(1).to(device)/sigma)
+    x = pts
     u = model(x)
     loss_dom = domain_loss(u, x, omega, m)
     phi_mono_decrease = phi_monotonic_decrease_dom(u, x)
@@ -110,19 +121,24 @@ for epoch in range(epochs):
 
     # print message
     if (epoch + 1) % message_every == 0:
-        print(f"epoch = {epoch+1} | loss = {loss.item():.6e} | learning rate = {current_lr:.6e} |")#,  end='\r')
+        print(f"epoch = {last_epoch + epoch+1} | loss = {loss.item():.6e} | learning rate = {current_lr:.6e} |")#,  end='\r')
 
     if (epoch + 1) % save_model_every == 0:
-        torch.save(model.state_dict(), out_dir + f"model_epoch{epoch+1}.pth")
+        torch.save(model.state_dict(), out_dir + f"model_epoch{last_epoch + epoch+1}.pth")
+        # save model
+        # save losses and learning rate lists
+        np.savez(out_dir + "losses.npz", loss=losses)
+        np.savez(out_dir + "total_loss.npz", loss=loss_list)
+        np.savez(out_dir + "learning_rate.npz", lr=lr_list)
 
     # Adjust learning rate based on exponential decay (after each reset)
     loss.backward()
     optimizer.step()
     scheduler.step()
 
-# save model
-# save losses and learning rate lists
-np.savez(out_dir + "losses.npz", loss=losses)
-np.savez(out_dir + "total_loss.npz", loss=loss_list)
-np.savez(out_dir + "learning_rate.npz", lr=lr_list)
+# # save model
+# # save losses and learning rate lists
+# np.savez(out_dir + "losses.npz", loss=losses)
+# np.savez(out_dir + "total_loss.npz", loss=loss_list)
+# np.savez(out_dir + "learning_rate.npz", lr=lr_list)
 
