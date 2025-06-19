@@ -16,7 +16,7 @@ n = 2*1000  # Adjust this as necessary
 #sigma = 0.1
 
 # Configuration and hyperparameters
-in_dir = f"./models/neurons{neurons}_h_layers{h_layers}_n{n}_sigma{sigma}/"
+in_dir = f"./models/neurons{neurons}_h_layers{h_layers}_n{n}/"
 out_dir = in_dir
 
 print('torch version:',torch.__version__)
